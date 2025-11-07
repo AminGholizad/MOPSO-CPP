@@ -1,0 +1,42 @@
+# CMake
+/build/
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Testing/
+_deps/
+
+# Visual Studio
+.vs/
+*.VC.db
+*.VC.opendb
+*.sdf
+*.suo
+*.user
+*.ilk
+*.obj
+*.pdb
+*.lib
+*.dll
+*.exe
+*.exp
+*.aps
+*.bsc
+*.ncb
+*.opensdf
+*.res
+*.tlog
+
+# macOS
+.DS_Store
+
+# Linux
+*.o
+*.so
+*.a
+
+# Misc
+*~
+*.bak
+*.swp
+.vscode/

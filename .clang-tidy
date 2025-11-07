@@ -1,0 +1,15 @@
+Checks: "-*,cppcoreguidelines-*,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-type-vararg,hicpp-*,-hicpp-vararg,modernize-*,-modernize-use-trailing-return-type,readability-*"
+WarningsAsErrors: ""
+HeaderFilterRegex: ".*"
+FormatStyle: "file"
+CheckOptions:
+  # Configuration for local variables (non-parameter, non-loop counter, non-exception)
+  readability-identifier-length.IgnoredVariableNames: "^([xyz]|mu|pi)$" # Ignore variables named x, y, or z
+
+  # Configuration for function parameters
+  readability-identifier-length.IgnoredParameterNames: "^([xyz]|mu)$" # Ignore parameters named x, y, or z
+
+
+  # Optional: You can also adjust the minimum length or ignore other types if needed
+  # readability-identifier-length.MinimumVariableNameLength: 3 # Default is 3
+  # readability-identifier-length.IgnoredLoopCounterNames: '^[ijk]$' # Default ignores i, j, k
