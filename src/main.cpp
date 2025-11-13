@@ -43,12 +43,12 @@ int main() {
   const mopso::Problem problem{cost_fcn};
   const mopso::Variables lower_bound{0.0, 0.0, 0.0, 0.0};
   const mopso::Variables upper_bound{pi / 2, pi / 2, pi / 2, pi / 2};
-  const auto [repository, swarm] = mopso::mopso<swarm_size>(
+  const auto solution = mopso::mopso<swarm_size>(
       lower_bound, upper_bound, problem, iteration_count, repository_size);
   auto file = std::ofstream("./repository.csv");
-  repository.export_csv(file);
+  solution.repository.export_csv(file);
   file = std::ofstream("./swarm.csv");
-  swarm.export_csv(file);
-  repository.SelectLeader().info();
+  solution.swarm.export_csv(file);
+  solution.repository.SelectLeader().info();
   return 0;
 }

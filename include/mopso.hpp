@@ -5,7 +5,6 @@
 #include <cmath>
 #include <cstddef>
 namespace mopso {
-constexpr auto DEFAULT_SWARM_SIZE = 100;
 
 struct Weight_range {
   double begin{0};
@@ -15,8 +14,14 @@ constexpr Weight_range DEFAULT_WEIGHT_RANGE{.begin = 0.1, .end = 0.01};
 
 template <size_t SWARM_SIZE, size_t NUM_VARS, size_t OBJECTIVES,
           size_t GRID_SIZE = DEFAULT_GRID_SIZE>
-std::pair<Repository<NUM_VARS, OBJECTIVES, GRID_SIZE>,
-          Swarm<SWARM_SIZE, NUM_VARS, OBJECTIVES, GRID_SIZE>>
+struct Solution {
+  Repository<NUM_VARS, OBJECTIVES, GRID_SIZE> repository{};
+  Swarm<SWARM_SIZE, NUM_VARS, OBJECTIVES, GRID_SIZE> swarm{};
+};
+
+template <size_t SWARM_SIZE, size_t NUM_VARS, size_t OBJECTIVES,
+          size_t GRID_SIZE = DEFAULT_GRID_SIZE>
+Solution<SWARM_SIZE, NUM_VARS, OBJECTIVES, GRID_SIZE>
 mopso(const Variables<NUM_VARS> &lower_bound,
       const Variables<NUM_VARS> &upper_bound,
       const Problem<OBJECTIVES> &problem, const size_t max_iter = 1000,
@@ -50,7 +55,7 @@ mopso(const Variables<NUM_VARS> &lower_bound,
                            current_mutation_probablity);
     repository.update(swarm.particles);
   }
-  return std::make_pair(repository, swarm);
+  return {repository, swarm};
 }
 } // namespace mopso
 #endif // PSO_H
