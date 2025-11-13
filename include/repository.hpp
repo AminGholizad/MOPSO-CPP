@@ -1,134 +1,151 @@
 #ifndef REP
 #define REP
-#include <vector>
-#include <map>
-#include <limits>
-#include "rand.hpp"
 #include "particle.hpp"
+#include "rand.hpp"
+#include <map>
+#include <vector>
 namespace mopso {
-  template <ull N, ull O>
-  class Repository {
-    public:
-      inline Repository() = default;
-      inline Repository(Repository const&) = default;
-      inline Repository(Repository&&) = default;
-      inline Repository& operator=(Repository const&) = default;
-      inline Repository& operator=(Repository&&) = default;
-      template <ull S>
-      inline Repository (std::array<Particle<N,O>,S> s,ull r,ull g,double a,double b,double ga)
-            :rep_size{r},grid_size{g},alpha{a},beta{b},gamma{ga}{
-              Particle<N,O>::update_domination(s);
-              for (size_t i = 0; i < S; i++)
-                if (!s[i].is_dominated)
-                  swarm.push_back(s[i]);
-              get_grid();
-              for (size_t i = 0; i < swarm.size(); i++)
-                swarm[i].update_grid_index(Grid);
-            }
-      inline Particle<N,O> SelectLeader()const&{
-        size_t sm = select_index(-beta);
-        return swarm[sm];
+template <size_t NUM_VARS, size_t OBJECTIVES,
+          size_t GRID_SIZE = DEFAULT_GRID_SIZE>
+class Repository {
+
+  using Particle = Particle<NUM_VARS, OBJECTIVES, GRID_SIZE>;
+  using Grid = std::array<std::array<double, GRID_SIZE + 1>, OBJECTIVES>;
+
+public:
+  constexpr Repository() = default;
+  constexpr Repository(std::span<Particle> curr_swarm, size_t r_size,
+                       double a_val, double b_val, double ga_val)
+      : repository_size{r_size}, alpha{a_val}, beta{b_val}, gamma{ga_val} {
+    Particle::update_domination(curr_swarm);
+    extend_swarm(curr_swarm);
+    update_grid();
+    Particle::update_grid_index(grid, swarm);
+  }
+
+  [[nodiscard]] constexpr Particle SelectLeader() const {
+    size_t selected = select_index(-beta);
+    return swarm[selected];
+  }
+
+  constexpr void update(std::span<Particle> curr_swarm) {
+    Particle::update_domination(curr_swarm);
+    extend_swarm(curr_swarm);
+    update_grid();
+    Particle::update_grid_index(grid, swarm);
+    delete_extra_rep_memebrs();
+  }
+
+  [[nodiscard]] constexpr size_t size() const { return swarm.size(); }
+
+  constexpr void info(std::ostream &out = std::cout) const {
+    for (const auto &particle : swarm) {
+      particle.info(out);
+      out << '\n';
+    }
+  }
+
+  constexpr void export_csv(std::ostream &out) const {
+    Particle::export_csv(out, swarm);
+  }
+
+private:
+  std::vector<Particle> swarm{};
+  Grid grid{};
+  size_t repository_size{0};
+  double alpha{0};
+  double beta{0};
+  double gamma{0};
+
+  constexpr void extend_swarm(std::span<const Particle> curr_swarm) {
+    for (auto particle : curr_swarm) {
+      if (!particle.is_dominated) {
+        swarm.push_back(std::move(particle));
       }
-      template <ull S>
-      inline void update(std::array<Particle<N,O>,S>& s){
-        Particle<N,O>::update_domination(s);
-        for (size_t i = 0; i < S; i++)
-          if (!s[i].is_dominated)
-            swarm.push_back(s[i]);
-        get_grid();
-        for (size_t i = 0; i < swarm.size(); i++)
-          swarm[i].update_grid_index(Grid);
-        while (swarm.size() > rep_size) DeleteOneRepMemebr();
+    }
+  }
+  constexpr void update_grid() {
+    for (size_t i = 0; i < OBJECTIVES; i++) {
+      const auto [mini, maxi] = std::minmax_element(
+          swarm.cbegin(), swarm.cend(),
+          [&](const auto &particle_a, const auto &particle_b) {
+            return particle_a.cost.objective[i] < particle_b.cost.objective[i];
+          });
+      double cmini = mini->cost.objective[i];
+      double cmaxi = maxi->cost.objective[i];
+
+      double delta_c = cmaxi - cmini;
+      cmini -= alpha * delta_c;
+      cmaxi += alpha * delta_c;
+      const double delta = (cmaxi - cmini) / static_cast<double>(GRID_SIZE - 1);
+
+      double val = cmini;
+      for (auto &grid_i : grid[i]) {
+        grid_i = val;
+        val += delta;
       }
-      inline size_t size()const&{
-        return swarm.size();
+
+      grid[i][GRID_SIZE] = (std::numeric_limits<double>::max());
+    }
+  }
+
+  [[nodiscard]] constexpr size_t select_index(const double tau) const {
+    std::map<size_t, size_t> mOC;
+    for (const auto &particle : swarm) {
+      if (mOC.find(particle.grid_index) != mOC.end()) {
+        mOC[particle.grid_index]++;
+      } else {
+        mOC[particle.grid_index] = 1;
       }
-      inline void info(std::ostream& out=std::cout){
-        for (auto p : swarm){
-          p.info(out);
-          out << '\n';
-        }
+    }
+    std::map<size_t, double> probabilities;
+    double sum = 0.0;
+    for (const auto &[key, val] : mOC) {
+      const double mag = std::exp(tau * static_cast<double>(val));
+      sum += mag;
+      probabilities[key] = mag;
+    }
+    for (auto &[key, val] : probabilities) {
+      val /= sum;
+    } // normalize
+
+    double cumsum = 0.0;
+    for (const auto &[key, val] : probabilities) {
+      cumsum += val;
+      probabilities[key] = cumsum;
+    }
+    // roulette
+    size_t sci = 0;
+    const double random_number = rnd::rand();
+    for (const auto &[key, val] : mOC) {
+      if (random_number <= probabilities[key]) {
+        sci = key;
+        break;
       }
-      inline void csv_out(std::ostream& out){
-        Particle<N,O>::csv_out(out,swarm);
+    }
+    // end_roulette
+    auto smi = rnd::unifrnd<size_t>(0, mOC[sci] - 1);
+    size_t GIi = 0;
+    for (size_t i = 0; i < swarm.size(); i++) {
+      if (smi == 0) {
+        GIi = i;
+        break;
       }
-    private:
-      ull rep_size;
-      std::vector<Particle<N,O>> swarm;
-      GRD<O> Grid;
-      ull grid_size;
-      double alpha;
-      double beta;
-      double gamma;
-      inline void get_grid(){
-        for (size_t i = 0; i < O; i++) {
-          Grid[i].clear();
-          double cmini=std::numeric_limits<double>::max(),cmaxi=-cmini;
-          for (size_t j = 0; j < swarm.size(); j++) {
-            if (swarm[j].cost[i]>cmaxi)
-              cmaxi=swarm[j].cost[i];
-            if (swarm[j].cost[i]<cmini)
-              cmini=swarm[j].cost[i];
-          }
-          double dc=cmaxi-cmini;
-          cmini-=alpha*dc;
-          cmaxi+=alpha*dc;
-          double delta = (cmaxi - cmini) / (grid_size-1);
-          for(size_t k=0; k < grid_size-1; k++){
-            Grid[i].push_back(cmini + delta*k);
-          }
-          Grid[i].push_back(cmaxi);
-          Grid[i].push_back(std::numeric_limits<double>::max());
-        }
+      if (swarm[i].grid_index == sci) {
+        smi--;
       }
-      inline size_t select_index(double tau)const&{
-        std::map<size_t, size_t> mOC;
-        for (size_t i = 0; i < swarm.size(); i++) {
-          if (mOC.find(swarm[i].grid_index)!=mOC.end()){
-            mOC[swarm[i].grid_index]++;
-          } else {
-            mOC[swarm[i].grid_index]=1;
-          }
-        }
-        std::map<size_t,double> P;
-        double s=0.;
-        for (auto i : mOC) {
-          double m = std::exp(tau*i.second);
-          s+=m;
-          P[i.first]=m;
-        }
-        for (auto i : mOC) P[i.first]/=s;//normalize
-        //cumsum:
-        for (auto i = mOC.begin(); i != mOC.end(); i++){
-          auto m = P[i->first];
-          std::advance(i,1);
-          P[i->first]+=m;
-          std::advance(i,-1);
-        }
-        //roulette
-        double sci=0;
-        double r=rnd::rand();
-        for (auto i : mOC)
-          if (r<=P[i.first]) {
-            sci = i.first;
-            break;
-          }
-        //end_roulette
-        size_t sm = rnd::unifrnd<size_t>(0,mOC[sci]-1);
-        size_t GIi = 0;
-        for (size_t i = 0; i < swarm.size(); i++){
-          if (sm==0){
-            GIi = i;
-            break;
-          }
-          if (swarm[i].grid_index==sci) sm--;
-        }
-        return GIi;
-      }
-      inline void DeleteOneRepMemebr(){
-        size_t sm = select_index(gamma);
-        swarm.erase(swarm.begin()+sm);
-      }
-  };
-} /* mopso */
+    }
+    return GIi;
+  }
+
+  constexpr void delete_extra_rep_memebrs() {
+    while (swarm.size() > repository_size) {
+      const auto selected_index = select_index(gamma);
+      auto iter = swarm.begin();
+      std::advance(iter, selected_index);
+      swarm.erase(iter);
+    }
+  }
+};
+} // namespace mopso
 #endif

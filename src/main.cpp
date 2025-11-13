@@ -1,39 +1,54 @@
-#include <iostream>
-#include <fstream>
 #include "mopso.hpp"
 #include <cmath>
-const double pi = 3.1415926535897932385;
-template<mopso::ull N, mopso::ull O>
-std::pair<mopso::vars<O>,double>cost_fcn(mopso::vars<N> x){
-  double s1 = 0.;
-  double s2 = 0.;
-  double c = 0.;
-  for (size_t i = 0; i < N; i++) {
-    s1+=std::sin(x[i]*5)+std::sin(x[i]*7)+std::sin(x[i]*11);
-    for (size_t j = 1; j < 100; j++) {
-      s2+=std::sin(x[i]*(6*j+1))+std::sin(x[i]*(6*j-1));
+#include <cstddef>
+#include <fstream>
+const double pi = std::numbers::pi;
+
+auto cost_fcn(std::span<const double> variables) {
+  mopso::Cost<2> result{};
+  for (const auto &var : variables) {
+    result.objective[0] +=
+        std::sin(var * 5) +            // NOLINT(readability-magic-numbers,
+                                       // cppcoreguidelines-avoid-magic-numbers)
+        std::sin(var * 7) +            // NOLINT(readability-magic-numbers,
+                                       // cppcoreguidelines-avoid-magic-numbers)
+        std::sin(var * 11);            // NOLINT(readability-magic-numbers,
+                                       // cppcoreguidelines-avoid-magic-numbers)
+    for (size_t j = 1; j < 100; j++) { // NOLINT(readability-magic-numbers,
+      // cppcoreguidelines-avoid-magic-numbers)
+      result.objective[1] +=
+          std::sin(var *
+                   static_cast<double>(
+                       (6 * j) + 1)) + // NOLINT(readability-magic-numbers,
+                                       // cppcoreguidelines-avoid-magic-numbers)
+          std::sin(var *
+                   static_cast<double>(
+                       (6 * j) - 1)); // NOLINT(readability-magic-numbers,
+                                      // cppcoreguidelines-avoid-magic-numbers)
     }
-    c+=std::sin(x[i]);
+    result.infeasiblity += std::sin(var);
   }
-  s1=std::abs(s1);
-  s2=std::abs(s2);
-  c=std::abs(c/N-0.7);
-  mopso::vars<O> s{s1,s2};
-  return std::make_pair(s,c);
+  result.objective[0] = std::abs(result.objective[0]);
+  result.objective[1] = std::abs(result.objective[1]);
+  result.infeasiblity =
+      std::abs((result.infeasiblity / static_cast<double>(variables.size())) -
+               0.7); // NOLINT(readability-magic-numbers,
+                     // cppcoreguidelines-avoid-magic-numbers)
+  return result;
 }
-int main(){
-  const mopso::ull Nvars{4};
-  const mopso::ull Nobjs{2};
-  const mopso::ull Swarm_size{200};
-  const mopso::ull Rep_size{200};
-  const mopso::ull max_iter{200};
-  mopso::vars<Nvars> l{0,0,0,0};
-  mopso::vars<Nvars> u{pi/2,pi/2,pi/2,pi/2};
-  auto [rep,swarm] = mopso::mopso<Nvars,Nobjs,Swarm_size>(l,u,cost_fcn<Nvars,Nobjs>,max_iter,Rep_size);
-  std::ofstream f("./repository.csv");
-  rep.csv_out(f);
-  f=std::ofstream ("./swarm.csv");
-  mopso::Particle<Nvars,Nobjs>::csv_out(f,swarm);
-  rep.SelectLeader().info();
+int main() {
+  const size_t swarm_size{200};
+  const size_t repository_size{200};
+  const size_t iteration_count{200};
+  const mopso::Problem problem{cost_fcn};
+  const mopso::Variables lower_bound{0.0, 0.0, 0.0, 0.0};
+  const mopso::Variables upper_bound{pi / 2, pi / 2, pi / 2, pi / 2};
+  const auto [repository, swarm] = mopso::mopso<swarm_size>(
+      lower_bound, upper_bound, problem, iteration_count, repository_size);
+  auto file = std::ofstream("./repository.csv");
+  repository.export_csv(file);
+  file = std::ofstream("./swarm.csv");
+  swarm.export_csv(file);
+  repository.SelectLeader().info();
   return 0;
 }
