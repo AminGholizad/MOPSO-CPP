@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
-project(PSO-CPP CXX)
+project(MOPSO-CPP CXX)
 set(CMAKE_CXX_COMPILER "g++")
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(false)
