@@ -176,17 +176,9 @@ public:
     }
   }
   constexpr void update_grid_index(const Grid &grid) {
-    // TODO: try to combine the loops if there is no need to have separate loop
-    // for first
-    size_t GridSubIndex = 0;
-    for (size_t j = 0; j < grid[0].size(); j++) {
-      if (cost.objective[0] < grid[0][j]) {
-        GridSubIndex = j;
-        break;
-      }
-    }
-    grid_index = GridSubIndex;
-    for (size_t i = 1; i < OBJECTIVES; i++) {
+    size_t GridSubIndex = 1;
+    grid_index = GridSubIndex; // after the first iteration = the GridSubIndex
+    for (size_t i = 0; i < OBJECTIVES; i++) {
       for (size_t j = 0; j < grid[i].size(); j++) {
         if (cost.objective[i] < grid[i][j]) {
           GridSubIndex = j;
