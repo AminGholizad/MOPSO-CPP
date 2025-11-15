@@ -8,7 +8,7 @@ Constraints and objectives are in one function.
 1. Template class for particles with number of variables and objectives as the template parameters is used to initialize the arrays of the needed size.
 2. Template class for repository with number of variables and objectives as the template parameters is used to initialize the arrays of the needed size.
 3. Template function for pso with number of variables, objectives, swarm size, and repository size as the template parameters is used to initialize arrays accordingly
-4. The cost function should accept one array as input and output a pair of doubles representing cost and constraint of the problem respectively.
+4. The cost function signiture should be one array/vector of doubles as input and the output is a cost type of two doubles representing objective and infeasablity of the problem respectively.
 5. The Mutation is used to avoid local minima.
 
 # todo
