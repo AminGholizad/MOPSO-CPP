@@ -1,6 +1,6 @@
-# Multi-Objective Particle swarm optimization (MOPSO) CPP17
+# Multi-Objective Particle swarm optimization (MOPSO) CPP
 Multi-Objective particle swarm optimization algorithm ([MOPSO](https://en.wikipedia.org/wiki/Particle_swarm_optimization#Multi-objective_optimization)) for a minimization problem. In this project, nonlinear constraints are implemented as infeasible solutions.
-This project is implemented in C++17.
+This project is implemented in C++.
 Constraints and objectives are in one function.
 
 # Features
