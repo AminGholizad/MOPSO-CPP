@@ -1,7 +1,7 @@
 #ifndef REP
 #define REP
 #include "particle.hpp"
-#include "rand.hpp"
+#include <Random-Helper.hpp>
 #include <map>
 #include <vector>
 namespace mopso {

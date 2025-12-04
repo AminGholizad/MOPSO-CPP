@@ -1,6 +1,6 @@
 #ifndef PARTICLE_H
 #define PARTICLE_H
-#include "rand.hpp"
+#include <Random-Helper.hpp>
 #include <array>
 #include <cstddef>
 #include <functional>
