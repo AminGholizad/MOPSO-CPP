@@ -1,0 +1,3 @@
+[submodule "lib/Random-Helper"]
+	path = lib/Random-Helper
+	url = https://github.com/AminGholizad/Random-Helper-functions.git
