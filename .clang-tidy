@@ -1,4 +1,4 @@
-Checks: "-*,cppcoreguidelines-*,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-type-vararg,hicpp-*,-hicpp-vararg,modernize-*,-modernize-use-trailing-return-type,readability-*"
+Checks: "-*,cppcoreguidelines-*,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-type-vararg,hicpp-*,-hicpp-vararg,modernize-*,-modernize-use-trailing-return-type,readability-*,clang-analyzer-*,performance-*"
 WarningsAsErrors: ""
 HeaderFilterRegex: ".*"
 FormatStyle: "file"
